@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>🎵 磨砂音乐 · 智能搜索+自动加载</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    body { background: radial-gradient(circle at 20% 30%, #1e1a2e, #0b0a12); min-height: 100vh; color: #fff; }
+    .glass { background: rgba(20, 18, 30, 0.4); backdrop-filter: blur(12px) saturate(180%); border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; }
+    .glass-card { background: rgba(30, 25, 45, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; transition: all 0.2s ease; }
+    .glass-card:hover { background: rgba(60, 50, 80, 0.6); transform: translateY(-2px); border-color: rgba(168, 139, 250, 0.3); }
+    
+    /* 横向列表项 - 强制水平布局 */
+    .list-item {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 1rem;
+      background: rgba(25, 20, 40, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 0.75rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .list-item:hover {
+      background: rgba(55, 45, 80, 0.7);
+      border-color: rgba(168, 139, 250, 0.5);
+      transform: translateX(5px);
+    }
+    .list-cover {
+      flex-shrink: 0;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #1a1625;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    .list-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .song-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+    .song-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .song-artist {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .list-icon {
+      flex-shrink: 0;
+      width: 32px;
+      text-align: center;
+    }
+    
+    /* 歌词样式：激活行放大 1.5 倍 + 平滑过渡 */
+    .lyric-line {
+      color: rgba(255,255,255,0.5);
+      transition: all 0.2s ease-in-out;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    .lyric-active {
+      color: #f0eefc;
+      font-weight: 600;
+      font-size: 1.5rem;
+      text-shadow: 0 0 10px #c084fc;
+      transition: all 0.2s ease-in-out;
+    }
+    
+    /* 滚动条 */
+    .custom-scroll::-webkit-scrollbar { width: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 8px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #a78bfa; border-radius: 8px; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    
+    /* 动画 */
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .spin-cover { animation: spin 20s linear infinite; animation-play-state: paused; }
+    .playing .spin-cover { animation-play-state: running; }
+    
+    .progress-slider { -webkit-appearance: none; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; }
+    .progress-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: white; border-radius: 50%; box-shadow: 0 0 12px #a78bfa; border: 2px solid #c084fc; cursor: pointer; }
+    .volume-slider { -webkit-appearance: none; height: 3px; background: rgba(255,255,255,0.2); border-radius: 10px; }
+    .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: white; border-radius: 50%; cursor: pointer; }
+    
+    .view { display: none; }
+    .view.active { display: block; }
+    
+    /* 搜索栏样式 */
+    .search-input {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 40px;
+      padding: 8px 16px;
+      color: white;
+      font-size: 0.9rem;
+      width: 100%;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: #a78bfa;
+      background: rgba(0,0,0,0.6);
+    }
+    .search-input::placeholder {
+      color: rgba(255,255,255,0.4);
+    }
+  </style>
+</head>
+<body class="p-4 md:p-6">
+<div class="max-w-7xl mx-auto relative">
+  
+  <!-- 顶部栏 -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <i class="fa-brands fa-github text-3xl text-purple-300/80"></i>
+      <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-200 to-white bg-clip-text text-transparent">Gist 磨砂音乐</h1>
+    </div>
+    <div class="flex gap-2">
+      <button id="backToPlaylistBtn" class="glass-card w-10 h-10 flex items-center justify-center text-white/80 hidden transition">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button id="toggleConfigBtn" class="glass-card w-10 h-10 flex items-center justify-center text-white/80 transition">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 配置面板 -->
+  <div id="configPanel" class="glass p-5 mb-6 hidden transition-all">
+    <h2 class="text-sm uppercase tracking-wider text-purple-300/80 mb-3 flex items-center gap-2">
+      <i class="fa-solid fa-cloud-arrow-down"></i> Gist 数据源
+    </h2>
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-col md:flex-row gap-3">
+        <input id="gistUrl" type="text" placeholder="粘贴 Raw URL (gist.githubusercontent.com/...)" 
+          class="flex-1 px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 outline-none">
+        <button id="loadGistBtn" class="px-6 py-2.5 bg-purple-600/80 hover:bg-purple-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 shadow-lg">
+          <i class="fa-solid fa-download"></i> 加载歌单
+        </button>
+      </div>
+      <div class="flex gap-2 text-sm">
+        <button id="useDemoBtn" class="text-purple-300 underline text-xs hover:text-purple-200">✨ 使用演示 Gist</button>
+        <span class="text-gray-500">|</span>
+        <a href="#" id="howToLink" class="text-gray-400 underline text-xs hover:text-white">📖 如何获取 Raw URL？</a>
+      </div>
+      <p id="gistStatus" class="text-xs text-gray-300 mt-1"></p>
+    </div>
+  </div>
+
+  <!-- 播放列表视图 - 横向布局 + 搜索栏 -->
+  <div id="playlistView" class="view active">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <h2 class="text-xl font-semibold flex items-center gap-2"><i class="fa-solid fa-head-side-headphones text-purple-300"></i>我的歌单 · 横向卡片</h2>
+      <span id="songCount" class="text-sm bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">0 首歌曲</span>
+    </div>
+    
+    <!-- 新增搜索栏 -->
+    <div class="mb-4">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm"></i>
+        <input type="text" id="searchInput" placeholder="搜索歌曲名或艺术家..." class="search-input pl-10 pr-4 py-2 w-full">
+      </div>
+    </div>
+    
+    <div id="playlistContainer" class="space-y-3 max-h-[400px] overflow-y-auto scrollbar-hide pr-1">
+      <p class="text-center text-white/40 py-12 flex flex-col items-center gap-2">
+        <i class="fa-regular fa-circle-play text-3xl"></i>
+        点击右上角齿轮⚙️，输入 Gist Raw URL 加载歌单
+      </p>
+    </div>
+  </div>
+
+  <!-- 播放详情视图 -->
+  <div id="playerView" class="view">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="glass p-5 h-[500px] flex flex-col">
+        <div class="flex items-center gap-2 mb-3 text-purple-200/80 border-b border-white/10 pb-2">
+          <i class="fa-solid fa-music"></i><span class="font-medium">滚动歌词 · 沉浸同步</span>
+        </div>
+        <div id="lyricsContainer" class="flex-1 overflow-y-auto custom-scroll text-center space-y-3 px-2">
+          <p class="text-white/40">✨ 暂无歌词，加载歌曲后显示</p>
+        </div>
+      </div>
+      <div class="glass p-6 flex flex-col items-center">
+        <div id="coverDisc" class="relative w-64 h-64 md:w-72 md:h-72 mx-auto mb-5">
+          <div class="absolute inset-0 rounded-full bg-gradient-to-br from-purple-800/30 to-pink-800/30 blur-xl"></div>
+          <div class="relative w-full h-full rounded-full overflow-hidden border-4 border-white/20 shadow-2xl spin-cover" id="coverSpinElement">
+            <img id="detailCover" src="" alt="封面" class="w-full h-full object-cover">
+          </div>
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 backdrop-blur rounded-full border-2 border-white/40"></div>
+        </div>
+        <div class="text-center w-full mb-3">
+          <h3 id="detailTitle" class="text-xl font-bold truncate px-2">未播放歌曲</h3>
+          <p id="detailArtist" class="text-white/60 text-sm mt-1 flex items-center justify-center gap-1">
+            <span>-</span>
+          </p>
+        </div>
+        <div class="w-full px-2 mb-2">
+          <input type="range" id="progressBar" class="progress-slider w-full" value="0" min="0" max="100" step="0.1">
+          <div class="flex justify-between text-xs text-white/40 mt-1"><span id="currentTime">0:00</span><span id="duration">0:00</span></div>
+        </div>
+        <div class="flex items-center justify-center gap-6 mt-2">
+          <button id="prevBtn" class="w-12 h-12 rounded-full glass-card flex items-center justify-center text-white hover:text-purple-300 transition"><i class="fa-solid fa-backward-step"></i></button>
+          <button id="playPauseBtn" class="w-16 h-16 rounded-full bg-purple-600/80 hover:bg-purple-600 backdrop-blur flex items-center justify-center text-white text-2xl shadow-xl transition-transform hover:scale-105"><i class="fa-solid fa-play"></i></button>
+          <button id="nextBtn" class="w-12 h-12 rounded-full glass-card flex items-center justify-center text-white hover:text-purple-300 transition"><i class="fa-solid fa-forward-step"></i></button>
+        </div>
+        <div class="flex items-center justify-between w-full mt-6">
+          <button id="modeBtn" class="glass-card w-9 h-9 flex items-center justify-center text-white/80 hover:text-purple-300 transition"><i class="fa-solid fa-repeat"></i></button>
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-volume-low text-white/50 text-sm"></i>
+            <input type="range" id="volumeSlider" class="volume-slider w-24" value="70" min="0" max="100">
+            <i class="fa-solid fa-volume-high text-white/50 text-sm"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="audioPlayer" preload="metadata"></audio>
+
+<script>
+  (function(){
+    const DEMO_GIST = 'https://gist.githubusercontent.com/yiitop/4e6a7b5d8f9c0e1a2b3c4d5e6f7a8b9c/raw/playlist.json';
+    
+    // DOM 元素
+    const configPanel = document.getElementById('configPanel');
+    const toggleConfigBtn = document.getElementById('toggleConfigBtn');
+    const gistUrlInput = document.getElementById('gistUrl');
+    const loadGistBtn = document.getElementById('loadGistBtn');
+    const gistStatus = document.getElementById('gistStatus');
+    const useDemoBtn = document.getElementById('useDemoBtn');
+    const howToLink = document.getElementById('howToLink');
+    const playlistView = document.getElementById('playlistView');
+    const playerView = document.getElementById('playerView');
+    const backToPlaylistBtn = document.getElementById('backToPlaylistBtn');
+    const playlistContainer = document.getElementById('playlistContainer');
+    const songCountSpan = document.getElementById('songCount');
+    const searchInput = document.getElementById('searchInput');
+    const audio = document.getElementById('audioPlayer');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const modeBtn = document.getElementById('modeBtn');
+    const progressBar = document.getElementById('progressBar');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const currentTimeSpan = document.getElementById('currentTime');
+    const durationSpan = document.getElementById('duration');
+    const detailCover = document.getElementById('detailCover');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailArtist = document.getElementById('detailArtist');
+    const lyricsContainer = document.getElementById('lyricsContainer');
+
+    let playlist = [];          // 原始歌单数据
+    let currentIndex = -1;
+    let lyricsData = null;
+    let playMode = 'list';
+    let isDragging = false;
+    let userScrolledLyrics = false;
+    let lyricsScrollTimeout = null;
+    let autoLoadTimer = null;   // 自动加载防抖定时器
+
+    function formatTime(s) { 
+      if(isNaN(s)) return '0:00'; 
+      const m = Math.floor(s / 60); 
+      const sec = Math.floor(s % 60); 
+      return `${m}:${sec.toString().padStart(2,'0')}`; 
+    }
+    
+    function parseLRC(lrcText) { 
+      const result = []; 
+      const lines = lrcText.split('\n');
+      const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/;
+      for (let line of lines) {
+        const match = line.match(timeRegex);
+        if (!match) continue;
+        const min = parseInt(match[1]);
+        const sec = parseInt(match[2]);
+        let ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0,3)) : 0;
+        const time = min*60 + sec + ms/1000;
+        const text = line.replace(timeRegex, '').trim();
+        if (text) result.push({ time, text });
+      }
+      return result.sort((a,b) => a.time - b.time);
+    }
+    
+    function renderLyrics(highlightIndex = -1) {
+      if(!lyricsData || lyricsData.length === 0) { 
+        lyricsContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-white/40"><i class="fa-regular fa-file-lines text-3xl mb-2"></i><p>暂无歌词，纯享旋律</p></div>'; 
+        return; 
+      }
+      lyricsContainer.innerHTML = lyricsData.map((l, i) => `<p class="lyric-line ${i === highlightIndex ? 'lyric-active' : ''}">${escapeHtml(l.text)}</p>`).join('');
+    }
+
+    function updateLyricsHighlight(currentTime) {
+      if(!lyricsData) return;
+      let activeIndex = -1;
+      for(let i = 0; i < lyricsData.length; i++) {
+        if(lyricsData[i].time <= currentTime) activeIndex = i;
+        else break;
+      }
+      const lines = document.querySelectorAll('.lyric-line');
+      lines.forEach((el, i) => {
+        el.classList.toggle('lyric-active', i === activeIndex);
+        if (i === activeIndex && !userScrolledLyrics && activeIndex !== -1) {
+          el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      });
+    }
+
+    lyricsContainer.addEventListener('scroll', () => {
+      userScrolledLyrics = true;
+      if (lyricsScrollTimeout) clearTimeout(lyricsScrollTimeout);
+      lyricsScrollTimeout = setTimeout(() => userScrolledLyrics = false, 3500);
+    });
+
+    function escapeHtml(str) {
+      if(!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if(m === '&') return '&amp;';
+        if(m === '<') return '&lt;';
+        if(m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    async function loadSong(idx) {
+      if(idx < 0 || idx >= playlist.length) return;
+      const song = playlist[idx];
+      currentIndex = idx;
+      detailTitle.textContent = song.title || '未知曲目';
+      detailArtist.innerHTML = `<span>${escapeHtml(song.artist || '佚名艺术家')}</span>`;
+      
+      if(song.pic && song.pic.trim()) {
+        detailCover.src = song.pic;
+        detailCover.onerror = () => { detailCover.src = 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&q=80'; };
+      } else {
+        detailCover.src = 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&q=80';
+      }
+      
+      audio.src = song.url;
+      if(song.lrc) {
+        try {
+          const lrcRes = await fetch(song.lrc);
+          if(lrcRes.ok) {
+            const lrcText = await lrcRes.text();
+            lyricsData = parseLRC(lrcText);
+          } else lyricsData = null;
+        } catch(e) { lyricsData = null; }
+      } else lyricsData = null;
+      renderLyrics();
+      renderPlaylist();   // 刷新列表高亮（同时会应用搜索过滤）
+      document.title = `${song.title || '无题'} - ${song.artist || '磨砂音乐'}`;
+    }
+
+    // 根据搜索关键词过滤并渲染歌单
+    function renderPlaylist() {
+      if(!playlist.length) { 
+        playlistContainer.innerHTML = `<div class="text-center text-white/40 py-16 flex flex-col items-center gap-3">
+          <i class="fa-regular fa-folder-open text-4xl"></i>
+          <p>暂无歌曲，请通过齿轮加载 Gist 歌单</p>
+          <button id="quickDemoBtn" class="text-purple-300 underline text-sm mt-2">✨ 试用演示歌单</button>
+        </div>`;
+        songCountSpan.textContent = '0 首';
+        const quickBtn = document.getElementById('quickDemoBtn');
+        if(quickBtn) quickBtn.addEventListener('click', () => { gistUrlInput.value = DEMO_GIST; loadGist(DEMO_GIST); });
+        return; 
+      }
+      
+      // 获取搜索关键词，不区分大小写
+      const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      let filteredSongs = playlist;
+      if (keyword !== '') {
+        filteredSongs = playlist.filter(song => {
+          const titleMatch = song.title && song.title.toLowerCase().includes(keyword);
+          const artistMatch = song.artist && song.artist.toLowerCase().includes(keyword);
+          return titleMatch || artistMatch;
+        });
+      }
+      
+      songCountSpan.textContent = `${filteredSongs.length} 首${keyword ? ' (过滤后)' : ''}`;
+      
+      if (filteredSongs.length === 0) {
+        playlistContainer.innerHTML = `<div class="text-center text-white/40 py-12 flex flex-col items-center gap-2">
+          <i class="fa-regular fa-face-frown text-3xl"></i>
+          <p>没有找到 “${escapeHtml(keyword)}” 相关的歌曲</p>
+        </div>`;
+        return;
+      }
+      
+      playlistContainer.innerHTML = filteredSongs.map((s, idxInFiltered) => {
+        // 获取该歌曲在原始 playlist 中的真实索引
+        const originalIndex = playlist.findIndex(orig => orig.id === s.id);
+        const isActive = (currentIndex === originalIndex);
+        const coverImg = (s.pic && s.pic.trim()) ? s.pic : 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=100&q=80';
+        return `
+          <div class="list-item" data-original-index="${originalIndex}">
+            <div class="list-cover">
+              <img src="${coverImg}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=100&q=80'">
+            </div>
+            <div class="song-info">
+              <div class="song-title">
+                ${escapeHtml(s.title || '无标题')}
+                ${isActive ? '<i class="fa-solid fa-waveform text-purple-400 text-xs ml-1"></i>' : ''}
+              </div>
+              <div class="song-artist">
+                ${escapeHtml(s.artist || '未知艺术家')}
+              </div>
+            </div>
+            <div class="list-icon">
+              ${isActive ? '<i class="fa-solid fa-play-circle text-purple-400 text-xl"></i>' : '<i class="fa-regular fa-circle-play text-white/30 opacity-0 group-hover:opacity-100 transition text-xl"></i>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // 绑定点击事件
+      document.querySelectorAll('#playlistContainer .list-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+          const originalIdx = parseInt(el.dataset.originalIndex);
+          if(!isNaN(originalIdx) && playlist[originalIdx]) {
+            loadSong(originalIdx);
+            audio.play().catch(e => console.warn("自动播放需用户交互"));
+            switchToPlayerView();
+          }
+        });
+      });
+    }
+
+    function switchToPlayerView() { 
+      playlistView.classList.remove('active'); 
+      playerView.classList.add('active'); 
+      backToPlaylistBtn.classList.remove('hidden'); 
+    }
+    function switchToPlaylistView() { 
+      playerView.classList.remove('active'); 
+      playlistView.classList.add('active'); 
+      backToPlaylistBtn.classList.add('hidden'); 
+    }
+
+    function updateProgressBg(v) { 
+      progressBar.style.background = `linear-gradient(to right, #c084fc 0%, #c084fc ${v}%, rgba(255,255,255,0.2) ${v}%, rgba(255,255,255,0.2) 100%)`; 
+    }
+
+    async function loadGist(url) {
+      if(!url || url.trim() === '') {
+        gistStatus.textContent = '⚠️ 请填写有效的 Raw URL';
+        gistStatus.className = 'text-xs text-yellow-400 mt-1';
+        return;
+      }
+      gistStatus.textContent = '⏳ 加载音乐宇宙...';
+      gistStatus.className = 'text-xs text-purple-300 mt-1';
+      try {
+        const res = await fetch(url);
+        if(!res.ok) throw new Error(`HTTP ${res.status} — 请确保链接是 Raw 直链`);
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch(e) { throw new Error('JSON 解析失败，检查格式'); }
+        if(Array.isArray(data)) playlist = data;
+        else if(data.playlist && Array.isArray(data.playlist)) playlist = data.playlist;
+        else throw new Error('歌单格式需要为数组或包含 playlist 字段');
+        
+        playlist = playlist.map((s, idx) => ({
+          ...s,
+          id: s.id || idx+1,
+          title: s.title || '未命名',
+          artist: s.artist || '未知音乐人',
+          url: s.url || '',
+          pic: s.pic || '',
+          lrc: s.lrc || null
+        })).filter(song => song.url && song.url.trim() !== '');
+        
+        if(playlist.length === 0) throw new Error('歌单没有有效的歌曲 URL');
+        
+        gistStatus.textContent = `✅ 加载成功！共 ${playlist.length} 首歌曲`;
+        gistStatus.className = 'text-xs text-green-400 mt-1';
+        localStorage.setItem('gist_music_url', url);
+        renderPlaylist();
+        if(playlist.length) await loadSong(0);
+        if(!configPanel.classList.contains('hidden')) configPanel.classList.add('hidden');
+      } catch(e) {
+        gistStatus.textContent = `❌ 加载失败: ${e.message}`;
+        gistStatus.className = 'text-xs text-red-400 mt-1';
+        console.error(e);
+      }
+    }
+
+    // 自动加载：监听输入框内容变化（防抖）
+    function setupAutoLoad() {
+      gistUrlInput.addEventListener('input', function() {
+        if (autoLoadTimer) clearTimeout(autoLoadTimer);
+        const url = this.value.trim();
+        if (url === '') return;
+        autoLoadTimer = setTimeout(() => {
+          loadGist(url);
+        }, 800);
+      });
+      // 粘贴事件同样触发
+      gistUrlInput.addEventListener('paste', function() {
+        if (autoLoadTimer) clearTimeout(autoLoadTimer);
+        setTimeout(() => {
+          const url = gistUrlInput.value.trim();
+          if (url) loadGist(url);
+        }, 100);
+      });
+    }
+
+    // 监听搜索输入
+    function setupSearch() {
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          renderPlaylist();  // 重新渲染并过滤
+        });
+      }
+    }
+
+    // 事件绑定
+    toggleConfigBtn.addEventListener('click', () => configPanel.classList.toggle('hidden'));
+    loadGistBtn.addEventListener('click', () => {
+      if (autoLoadTimer) clearTimeout(autoLoadTimer);
+      loadGist(gistUrlInput.value.trim());
+    });
+    useDemoBtn.addEventListener('click', (e) => { e.preventDefault(); gistUrlInput.value = DEMO_GIST; loadGist(DEMO_GIST); });
+    howToLink.addEventListener('click', (e) => { e.preventDefault(); alert('📌 获取 Raw URL 步骤：\n1. 打开 GitHub Gist 并创建/打开一个 JSON 歌单文件\n2. 点击文件右上角的 “Raw” 按钮\n3. 复制浏览器地址栏的完整链接\n4. 粘贴到上方输入框并加载'); });
+    backToPlaylistBtn.addEventListener('click', switchToPlaylistView);
+    
+    playPauseBtn.addEventListener('click', () => { 
+      if(!audio.src || playlist.length === 0) { alert('请先从歌单中选择一首歌曲'); return; }
+      audio.paused ? audio.play() : audio.pause(); 
+    });
+    prevBtn.addEventListener('click', () => { 
+      if(!playlist.length) return; 
+      let i = (currentIndex - 1 + playlist.length) % playlist.length; 
+      if(playMode === 'random') i = Math.floor(Math.random() * playlist.length);
+      loadSong(i); audio.play(); 
+    });
+    nextBtn.addEventListener('click', () => { 
+      if(!playlist.length) return; 
+      let i = (currentIndex + 1) % playlist.length; 
+      if(playMode === 'random') i = Math.floor(Math.random() * playlist.length);
+      loadSong(i); audio.play(); 
+    });
+    modeBtn.addEventListener('click', () => { 
+      const modes = ['list', 'loop', 'random'];
+      const idx = (modes.indexOf(playMode) + 1) % 3;
+      playMode = modes[idx];
+      const icons = { list: '<i class="fa-solid fa-repeat"></i>', loop: '<i class="fa-solid fa-rotate-right"></i>', random: '<i class="fa-solid fa-shuffle"></i>' };
+      modeBtn.innerHTML = icons[playMode];
+      audio.loop = (playMode === 'loop');
+    });
+    
+    progressBar.addEventListener('input', (e) => { 
+      const v = e.target.value; 
+      updateProgressBg(v); 
+      if(audio.duration && !isNaN(audio.duration)) audio.currentTime = (v/100) * audio.duration; 
+    });
+    volumeSlider.addEventListener('input', e => audio.volume = e.target.value/100);
+    audio.volume = 0.7;
+    volumeSlider.value = 70;
+    
+    audio.addEventListener('timeupdate', () => {
+      if(!isDragging && audio.duration) {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        progressBar.value = percent;
+        updateProgressBg(percent);
+        currentTimeSpan.textContent = formatTime(audio.currentTime);
+        updateLyricsHighlight(audio.currentTime);
+      }
+    });
+    audio.addEventListener('loadedmetadata', () => { durationSpan.textContent = formatTime(audio.duration); });
+    audio.addEventListener('play', () => { playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; document.getElementById('coverDisc')?.classList.add('playing'); });
+    audio.addEventListener('pause', () => { playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; document.getElementById('coverDisc')?.classList.remove('playing'); });
+    audio.addEventListener('ended', () => { if(playMode === 'loop') audio.play(); else nextBtn.click(); });
+    audio.addEventListener('error', () => alert('音频无法播放，请检查链接是否支持跨域或有效'));
+    
+    progressBar.addEventListener('mousedown', () => isDragging = true);
+    progressBar.addEventListener('mouseup', () => isDragging = false);
+    progressBar.addEventListener('change', () => isDragging = false);
+    document.addEventListener('keydown', (e) => { if(e.code === 'Space' && !['INPUT', 'BUTTON', 'TEXTAREA'].includes(e.target.tagName)){ e.preventDefault(); if(audio.src) audio.paused ? audio.play() : audio.pause(); } });
+    
+    const savedUrl = localStorage.getItem('gist_music_url');
+    if(savedUrl) { 
+      gistUrlInput.value = savedUrl; 
+      gistStatus.textContent = '📀 发现之前保存的歌单链接，点击“加载歌单”或直接粘贴触发自动加载';
+      gistStatus.className = 'text-xs text-blue-300 mt-1';
+    }
+    updateProgressBg(0);
+    
+    // 初始化额外功能
+    setupAutoLoad();
+    setupSearch();
+  })();
+</script>
+</body>
+</html>
