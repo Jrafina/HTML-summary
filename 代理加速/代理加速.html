@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>⚡ 极速下载代理 · GitHub/直链加速</title>
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .glass-card {
+            max-width: 760px;
+            width: 100%;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 36px;
+            box-shadow: 0 20px 40px -8px rgba(0,0,0,0.12);
+            border: 1px solid rgba(255,255,255,0.6);
+            padding: 28px 30px 32px;
+            transition: all 0.2s;
+        }
+        h1 {
+            font-size: 2.0rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(145deg, #0f2b3d, #1e4a6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .badge {
+            background: #dbeafe;
+            color: #1e4a7a;
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 40px;
+            margin-left: 8px;
+        }
+        .subtitle {
+            color: #52718c;
+            margin-bottom: 28px;
+            font-size: 0.95rem;
+            border-left: 4px solid #3b82f6;
+            padding-left: 16px;
+        }
+        .config-section {
+            background: rgba(255,255,255,0.5);
+            border-radius: 28px;
+            padding: 18px 22px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(203,213,225,0.3);
+        }
+        .config-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 16px;
+        }
+        .config-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            font-weight: 600;
+            color: #1e3a5f;
+        }
+        .config-input {
+            flex: 1;
+            min-width: 240px;
+            background: white;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 60px;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.15s;
+        }
+        .config-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+        }
+        .btn-icon {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            padding: 10px 18px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.1s;
+            font-size: 0.9rem;
+        }
+        .btn-icon:hover {
+            background: #f8fafc;
+        }
+        .btn-primary {
+            background: #1e3a5f;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 6px 12px -6px #15325033;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-primary:hover {
+            background: #0f2b40;
+            transform: translateY(-1px);
+        }
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+        .url-input-area {
+            margin: 24px 0 18px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 60px;
+            border: 1.5px solid #dee6ed;
+            padding: 4px 4px 4px 22px;
+            transition: 0.15s;
+        }
+        .input-group:focus-within {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+        }
+        .input-group i {
+            color: #62748c;
+            font-size: 1.2rem;
+        }
+        .input-group input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            padding: 16px 12px;
+            background: transparent;
+            width: 100%;
+        }
+        .input-group button {
+            background: #eef4ff;
+            border: none;
+            border-radius: 60px;
+            padding: 12px 24px;
+            font-weight: 600;
+            color: #1e4a7a;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+        .preset-links {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .preset-btn {
+            background: rgba(255,255,255,0.7);
+            border: 1px solid #dde3ea;
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            color: #254358;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .preset-btn i {
+            font-size: 0.9rem;
+        }
+        .info-box {
+            background: #e6f7e6;
+            border-radius: 20px;
+            padding: 16px 22px;
+            margin: 20px 0 10px;
+            border: 1px solid #22c55e;
+            color: #166534;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .footer-note {
+            margin-top: 24px;
+            font-size: 0.8rem;
+            color: #5b7a96;
+            text-align: center;
+        }
+        .status-badge {
+            background: white;
+            padding: 4px 16px;
+            border-radius: 60px;
+            font-size: 0.8rem;
+            border: 1px solid #cbd5e1;
+        }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .glass-card { padding: 22px 18px; }
+            h1 { font-size: 1.6rem; }
+            .config-row { flex-direction: column; align-items: stretch; }
+            .config-label { min-width: auto; }
+            .input-group { flex-wrap: wrap; background: transparent; padding: 0; border: none; gap: 8px; }
+            .input-group input {
+                background: white;
+                border-radius: 60px;
+                border: 1.5px solid #dee6ed;
+                padding: 14px 20px;
+            }
+            .input-group button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        button {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body>
+<div class="glass-card">
+    <h1>
+        <i class="fas fa-cloud-download-alt" style="background: linear-gradient(145deg, #1e4a6b, #0f2b3d); -webkit-background-clip: text; background-clip: text; color: transparent;"></i>
+        ️极速下载代理
+        <span class="badge">GitHub · 直链加速</span>
+    </h1>
+    <div class="subtitle">
+        <i class="fas fa-bolt" style="margin-right: 8px;"></i>基于 Cloudflare Worker 边缘网络 · 突破限制 · 无需梯子
+    </div>
+
+    <!-- 配置区域 -->
+    <div class="config-section">
+        <div class="config-row">
+            <span class="config-label"><i class="fas fa-link"></i> 代理 Worker 地址</span>
+            <input type="text" id="workerUrlInput" class="config-input" placeholder="例如: https://proxy.yourdomain.workers.dev" value="">
+            <button id="saveWorkerBtn" class="btn-icon"><i class="fas fa-save"></i> 保存</button>
+            <button id="testWorkerBtn" class="btn-icon" title="测试连通性"><i class="fas fa-vial"></i> 测试</button>
+        </div>
+    </div>
+
+    <!-- 下载链接输入区 -->
+    <div class="url-input-area">
+        <div class="input-group">
+            <i class="fas fa-link"></i>
+            <input type="text" id="downloadUrlInput" placeholder="粘贴 GitHub / 直链 或 网盘分享链接" autocomplete="off">
+            <button id="downloadBtn"><i class="fas fa-download"></i> 开始加速</button>
+        </div>
+    </div>
+
+    <!-- 快捷示例 -->
+    <div class="preset-links">
+        <span class="preset-btn" data-url="https://github.com/cloudflare/cloudflare-docs/archive/refs/heads/production.zip">
+            <i class="fab fa-github"></i> Cloudflare Docs
+        </span>
+        <span class="preset-btn" data-url="https://github.com/microsoft/vscode/archive/refs/tags/1.82.2.zip">
+            <i class="fab fa-github"></i> VSCode 源码
+        </span>
+        <span class="preset-btn" data-url="https://speed.hetzner.de/100MB.bin">
+            <i class="fas fa-gauge-high"></i> 100MB 测速文件
+        </span>
+    </div>
+
+    <!-- 状态 / 提示 -->
+    <div class="info-box" id="infoBox">
+        <i class="fas fa-circle-info" style="font-size: 1.4rem;"></i>
+        <span id="infoText">⚡ 配置 Worker 地址后即可使用。支持 GitHub / 直链 / 网盘(直链)。</span>
+    </div>
+
+    <!-- 辅助状态 -->
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span class="status-badge" id="connectionStatus">
+            <i class="fas fa-circle" style="color: #94a3b8; font-size: 0.6rem;"></i> 未配置
+        </span>
+        <span class="status-badge">
+            <i class="fas fa-database"></i> 缓存加速 · 智能边缘
+        </span>
+    </div>
+
+    <div class="footer-note">
+        ⚡ 文件将通过 Worker 代理获取 · 首次访问可能稍慢 · 热门资源秒开<br>
+        🔒 仅用于合法学习与开发 · 请勿滥用
+    </div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        // DOM 元素
+        const workerUrlInput = document.getElementById('workerUrlInput');
+        const saveWorkerBtn = document.getElementById('saveWorkerBtn');
+        const testWorkerBtn = document.getElementById('testWorkerBtn');
+        const downloadUrlInput = document.getElementById('downloadUrlInput');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const infoText = document.getElementById('infoText');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // 默认存储 key
+        const STORAGE_KEY = 'download_proxy_worker_url';
+
+        // ---------- 初始化加载保存的 Worker 地址 ----------
+        function loadSavedWorkerUrl() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                workerUrlInput.value = saved;
+                updateConnectionStatus(true, '已加载配置');
+            } else {
+                updateConnectionStatus(false, '未配置');
+            }
+        }
+
+        function saveWorkerUrl(url) {
+            const trimmed = url.trim();
+            if (!trimmed) {
+                localStorage.removeItem(STORAGE_KEY);
+                updateConnectionStatus(false, '未配置');
+                infoText.innerText = '⚠️ 请填写有效的 Worker 代理地址';
+                return false;
+            }
+            // 简单校验格式
+            if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+                alert('Worker 地址必须以 http:// 或 https:// 开头');
+                return false;
+            }
+            localStorage.setItem(STORAGE_KEY, trimmed);
+            updateConnectionStatus(true, '已配置');
+            infoText.innerText = '✅ Worker 地址已保存，可以开始加速下载';
+            return true;
+        }
+
+        function updateConnectionStatus(hasConfig, message) {
+            if (hasConfig) {
+                connectionStatus.innerHTML = `<i class="fas fa-circle" style="color: #22c55e; font-size: 0.6rem;"></i> ${message || '已配置'}`;
+            } else {
+                connectionStatus.innerHTML = `<i class="fas fa-circle" style="color: #94a3b8; font-size: 0.6rem;"></i> ${message || '未配置'}`;
+            }
+        }
+
+        // 获取当前 Worker URL (保证末尾无斜杠)
+        function getWorkerBaseUrl() {
+            let url = workerUrlInput.value.trim();
+            if (!url) {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) url = saved;
+            }
+            if (!url) {
+                alert('请先配置并保存 Worker 代理地址');
+                return null;
+            }
+            // 移除末尾斜杠
+            return url.replace(/\/+$/, '');
+        }
+
+        // ---------- 测试 Worker 连通性 ----------
+        async function testWorkerConnection() {
+            const base = getWorkerBaseUrl();
+            if (!base) return;
+
+            infoText.innerText = '🔄 正在测试 Worker 连通性...';
+            try {
+                // 发送一个无害的 HEAD 请求 (或 GET，Worker 应返回 404/405)
+                const testUrl = `${base}/ping?test=${Date.now()}`;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                
+                const resp = await fetch(testUrl, { 
+                    method: 'GET',
+                    signal: controller.signal,
+                    mode: 'cors' 
+                });
+                clearTimeout(timeoutId);
+                
+                // 只要能连通就算成功 (即使返回 404 也没关系)
+                infoText.innerText = `✅ Worker 连接正常 (状态码: ${resp.status}) · 可以开始加速下载`;
+                updateConnectionStatus(true, '已连接');
+            } catch (err) {
+                console.warn('测试失败:', err);
+                let errMsg = '连接失败';
+                if (err.name === 'AbortError') errMsg = '连接超时';
+                else if (err.message.includes('Failed to fetch')) errMsg = '网络错误或 Worker 不可达';
+                infoText.innerText = `❌ 测试失败: ${errMsg}。请检查 Worker 地址和网络。`;
+                updateConnectionStatus(true, '配置但无法连接');
+            }
+        }
+
+        // ---------- 核心下载逻辑 ----------
+        function performDownload() {
+            const base = getWorkerBaseUrl();
+            if (!base) return;
+
+            let targetUrl = downloadUrlInput.value.trim();
+            if (!targetUrl) {
+                alert('请输入要下载的文件直链');
+                return;
+            }
+
+            // 简单校验是否 http 开头
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                alert('请输入完整链接 (以 http:// 或 https:// 开头)');
+                return;
+            }
+
+            // 构建代理 URL (Worker 需要从查询参数获取真实 URL)
+            // 配套 Worker 会读取 ?url= 参数
+            const encodedUrl = encodeURIComponent(targetUrl);
+            const proxyDownloadUrl = `${base}/fetch?url=${encodedUrl}`;
+
+            // 显示提示
+            infoText.innerText = `🚀 正在通过代理获取: ${targetUrl.substring(0, 60)}...`;
+            
+            // 打开新窗口下载 (也可用 a 标签)
+            window.open(proxyDownloadUrl, '_blank');
+        }
+
+        // ---------- 快捷填充 ----------
+        function handlePresetClick(e) {
+            const btn = e.target.closest('.preset-btn');
+            if (!btn) return;
+            const url = btn.getAttribute('data-url');
+            if (url) {
+                downloadUrlInput.value = url;
+                infoText.innerText = `📎 已填入: ${url}`;
+            }
+        }
+
+        // ---------- 事件绑定 ----------
+        saveWorkerBtn.addEventListener('click', () => {
+            const url = workerUrlInput.value.trim();
+            if (saveWorkerUrl(url)) {
+                // 可选自动测试
+                // testWorkerConnection();
+            }
+        });
+
+        testWorkerBtn.addEventListener('click', testWorkerConnection);
+
+        downloadBtn.addEventListener('click', performDownload);
+
+        // 快捷示例点击
+        document.querySelector('.preset-links').addEventListener('click', handlePresetClick);
+
+        // 回车快捷下载
+        downloadUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performDownload();
+            }
+        });
+
+        // 初始化
+        loadSavedWorkerUrl();
+        
+        // 如果已保存，自动填入并提示
+        const savedUrl = localStorage.getItem(STORAGE_KEY);
+        if (savedUrl) {
+            workerUrlInput.value = savedUrl;
+            infoText.innerText = '✅ Worker 地址已加载，输入直链开始加速';
+        }
+
+        // 简单引导
+        console.log('💡 提示：本工具需要配合 Cloudflare Worker 使用。请将配套 Worker 代码部署后，将地址填入上方。');
+    })();
+</script>
+</body>
+</html>
